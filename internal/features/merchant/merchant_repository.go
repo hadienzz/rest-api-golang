@@ -1,7 +1,7 @@
 package merchant
 
 import (
-	"log"
+	"errors"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -11,7 +11,7 @@ type MerchantRepository interface {
 	CreateMerchant(merchant *Merchant) (*Merchant, error)
 	GetMerchantById(id uuid.UUID) (*Merchant, error)
 	GetAllMerchant() ([]Merchant, error)
-	GetMyMerchant(userID uuid.UUID) ([]Merchant, error)
+	GetMyMerchant(userID uuid.UUID) (*Merchant, error)
 }
 
 type merchantRepository struct {
@@ -25,11 +25,10 @@ func NewMerchantRepository(db *gorm.DB) MerchantRepository {
 }
 
 func (mr *merchantRepository) CreateMerchant(merchant *Merchant) (*Merchant, error) {
-	result := mr.db.Create(merchant)
-	if result.Error != nil {
-		log.Println("ERROR: ", result.Error)
+	if err := mr.db.Create(merchant).Error; err != nil {
+		return nil, err
 	}
-	return merchant, result.Error
+	return merchant, nil
 }
 
 func (mr *merchantRepository) GetMerchantById(id uuid.UUID) (*Merchant, error) {
@@ -53,9 +52,24 @@ func (mr *merchantRepository) GetAllMerchant() ([]Merchant, error) {
 	return merchants, result.Error
 }
 
-func (mr *merchantRepository) GetMyMerchant(userID uuid.UUID) ([]Merchant, error) {
-	var merchants []Merchant
-	err := mr.db.Where("user_id = ?", userID).Find(&merchants).Error
+func (mr *merchantRepository) GetMyMerchant(
+	userID uuid.UUID,
+) (*Merchant, error) {
 
-	return merchants, err
+	var merchant Merchant
+
+	err := mr.db.
+		Where("user_id = ?", userID).
+		Take(&merchant).
+		Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &merchant, nil
 }

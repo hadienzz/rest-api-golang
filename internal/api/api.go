@@ -5,6 +5,8 @@ import (
 	"go-fiber-api/internal/features/follow"
 	"go-fiber-api/internal/features/merchant"
 	"go-fiber-api/internal/features/products"
+
+	// "go-fiber-api/internal/features/products"
 	"go-fiber-api/internal/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -40,12 +42,14 @@ func RegisterMerchantRoutes(app *fiber.App, db *gorm.DB) {
 
 func RegisterProductRoutes(app *fiber.App, db *gorm.DB) {
 	api := app.Group("/api/products")
-	merchantRepo := merchant.NewMerchantRepository(db)
-	merchantService := merchant.NewMerchantService(merchantRepo)
 
 	productRepo := products.NewProductRepository(db)
-	productService := products.NewProductService(productRepo)
-	productHandler := products.NewProductHandler(productService, merchantService)
+	merchantRepo := merchant.NewMerchantRepository(db)
+	merchantService := merchant.NewMerchantService(merchantRepo)
+	merchantAdapter := merchant.NewMerchantServiceAdapter(merchantService)
+
+	productService := products.NewProductService(productRepo, merchantAdapter)
+	productHandler := products.NewProductHandler(productService, merchantAdapter)
 
 	api.Get("/merchant/:id", productHandler.GetMerchantProducts)
 	api.Post("/add", middleware.AuthRequired, productHandler.CreateProduct)

@@ -21,7 +21,7 @@ type SupabaseUploadResult struct {
 }
 
 func UploadToSupabaseStorage(
-	ctx *context.Context,
+	ctx context.Context,
 	fileHeader *multipart.FileHeader,
 	prefix string,
 ) (*SupabaseUploadResult, error) {
@@ -60,7 +60,7 @@ func UploadToSupabaseStorage(
 	)
 
 	request, err := http.NewRequestWithContext(
-		*ctx,
+		ctx,
 		http.MethodPut,
 		uploadURL,
 		bytes.NewReader(fileBytes),
