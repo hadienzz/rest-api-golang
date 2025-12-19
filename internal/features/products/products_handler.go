@@ -5,6 +5,7 @@ import (
 	"go-fiber-api/internal/util/validation"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type ProductHandler interface {
@@ -25,66 +26,58 @@ func NewProductHandler(productService ProductService, merchantService MerchantSe
 }
 
 func (ph *productHandler) CreateProduct(c *fiber.Ctx) error {
-	// Ambil user_id dari token
-	userIDFromToken := c.Locals("user_id").(*token.CustomClaims).UserID
+	// Ambil user dari token
 
-	// Cek dulu apakah user ini punya merchant
-	merchants, err := ph.merchantService.GetMyMerchant(userIDFromToken)
+	user_id := c.Locals("user_id").(*token.CustomClaims).UserID
+	MerchantID := c.Params("merchant_id")
 
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "failed to get merchant",
-			"error":   err.Error(),
-		})
-	}
-
-	if len(merchants) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "user does not have merchant",
-		})
-	}
-
-	// Ambil merchant pertama (atau bisa disesuaikan kalau multi-merchant)
-	merchantID := merchants[0].ID.String()
-
-	// Parse body request produk
-	var req CreateProductRequest
-	if err := c.BodyParser(&req); err != nil {
+	var request CreateProductRequest
+	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "invalid request body",
-			"error":   err.Error(),
 		})
 	}
 
-	// Set merchant_id dari merchant yang ditemukan, user tidak boleh kirim sendiri
-	req.MerchantID = merchantID
-
-	// Validasi payload
-	if errorMessages, err := validation.ValidateStruct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "validation internal error",
+	// Validasi request (API Contract)
+	if validationErrors, err := validation.ValidateStruct(request); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "validation error",
 		})
-	} else if len(errorMessages) > 0 {
+	} else if len(validationErrors) > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "validation failed",
-			"errors":  errorMessages,
+			"errors":  validationErrors,
 		})
 	}
 
-	// Mapping ke entity Product
-	product := &Product{
-		MerchantID:  req.MerchantID,
-		Name:        req.Name,
-		Description: req.Description,
-		Price:       req.Price,
-		Stock:       req.Stock,
+	// Validasi merchant_id
+	merchantID, err := uuid.Parse(MerchantID)
+	if err != nil || merchantID == uuid.Nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "invalid merchant id",
+		})
 	}
 
-	createdProduct, err := ph.productService.CreateProduct(product)
+	// Ambil merchant
+	merchant, err := ph.merchantService.GetMerchantById(merchantID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "merchant not found",
+		})
+	}
+
+	// Authorization: pastikan merchant milik user
+	if merchant.UserID != user_id {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"message": "you are not allowed to access this merchant",
+		})
+	}
+
+	request.MerchantID = merchantID
+	createdProduct, err := ph.productService.CreateProduct(&request)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "failed to create product",
-			"error":   err.Error(),
 		})
 	}
 

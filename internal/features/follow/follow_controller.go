@@ -2,6 +2,7 @@ package follow
 
 import (
 	"go-fiber-api/internal/util/token"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -104,6 +105,8 @@ func (h *followController) GetMerchantFollowStatus(c *fiber.Ctx) error {
 			"message": err.Error(),
 		})
 	}
+
+	log.Println(response)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "follow status retrieved successfully",

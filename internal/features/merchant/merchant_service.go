@@ -2,16 +2,15 @@ package merchant
 
 import (
 	"fmt"
-	"go-fiber-api/internal/features/products"
 
 	"github.com/google/uuid"
 )
 
 type MerchantService interface {
-	AddMerchant(req *CreateMerchantRequest) error
+	AddMerchant(req *MerchantDTO) error
 	GetMerchantById(id uuid.UUID) (*MerchantDTO, error)
 	GetAllMerchant() ([]MerchantDTO, error)
-	GetMyMerchant(userID uuid.UUID) ([]products.MerchantInfo, error)
+	GetMyMerchant(userID uuid.UUID) (*MerchantDTO, error)
 }
 
 type merchantService struct {
@@ -24,34 +23,53 @@ func NewMerchantService(merchantRepo MerchantRepository) MerchantService {
 	}
 }
 
-func (ms *merchantService) AddMerchant(req *CreateMerchantRequest) error {
+func (ms *merchantService) AddMerchant(req *MerchantDTO) error {
 	merchant := &Merchant{
-		UserID:       req.UserID,
-		Name:         req.Name,
-		Description:  req.Description,
-		Type:         req.Type,
-		Location:     req.Location,
-		ProfilePhoto: req.ProfilePhoto,
-		// BannerImg:    req.BannerImg.Filename,
+		UserID:          req.UserID,
+		Name:            req.Name,
+		Description:     req.Description,
+		Type:            req.Type,
+		Location:        req.Location,
+		ProfilePhotoUrl: req.ProfilePhotoUrl,
+		BannerImageUrl:  req.BannerImageUrl,
+		GalleryPhotoUrl: req.GalleryPhotoUrl,
+		GoogleMapUrl:    req.GoogleMapUrl,
+		IFrameMapUrl:    req.IFrameMapUrl,
+		Latitude:        req.Latitude,
+		Longitude:       req.Longitude,
 	}
 
 	_, err := ms.merchantRepository.CreateMerchant(merchant)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ms *merchantService) GetMerchantById(id uuid.UUID) (*MerchantDTO, error) {
 	merchant, err := ms.merchantRepository.GetMerchantById(id)
 
 	result := &MerchantDTO{
-		ID:           merchant.ID,
-		UserID:       merchant.UserID,
-		Name:         merchant.Name,
-		Description:  merchant.Description,
-		Type:         merchant.Type,
-		Location:     merchant.Location,
-		ProfilePhoto: merchant.ProfilePhoto,
-		CreatedAt:    merchant.CreatedAt,
-		UpdatedAt:    merchant.UpdatedAt,
+		ID:              merchant.ID,
+		UserID:          merchant.UserID,
+		Name:            merchant.Name,
+		Description:     merchant.Description,
+		Type:            merchant.Type,
+		Location:        merchant.Location,
+		ProfilePhotoUrl: merchant.ProfilePhotoUrl,
+		CreatedAt:       merchant.CreatedAt,
+		UpdatedAt:       merchant.UpdatedAt,
+		BannerImageUrl:  merchant.BannerImageUrl,
+		GalleryPhotoUrl: merchant.GalleryPhotoUrl,
+		Restricted:      merchant.Restricted,
+		Verified:        merchant.Verified,
+		TotalFollowers:  merchant.TotalFollowers,
+		GoogleMapUrl:    merchant.GoogleMapUrl,
+		IFrameMapUrl:    merchant.IFrameMapUrl,
+		Latitude:        merchant.Latitude,
+		Longitude:       merchant.Longitude,
 	}
 
 	if err != nil {
@@ -71,39 +89,43 @@ func (ms *merchantService) GetAllMerchant() ([]MerchantDTO, error) {
 	result := make([]MerchantDTO, len(merchants))
 	for i, m := range merchants {
 		result[i] = MerchantDTO{
-			ID:           m.ID,
-			UserID:       m.UserID,
-			Name:         m.Name,
-			Description:  m.Description,
-			Type:         m.Type,
-			Location:     m.Location,
-			ProfilePhoto: m.ProfilePhoto,
+			ID:              m.ID,
+			UserID:          m.UserID,
+			Name:            m.Name,
+			Description:     m.Description,
+			Type:            m.Type,
+			Location:        m.Location,
+			ProfilePhotoUrl: m.ProfilePhotoUrl,
 		}
 	}
 
 	return result, nil
 }
-func (ms *merchantService) GetMyMerchant(userID uuid.UUID) ([]products.MerchantInfo, error) {
-	merchants, err := ms.merchantRepository.GetMyMerchant(userID)
+
+func (ms *merchantService) GetMyMerchant(
+	userID uuid.UUID,
+) (*MerchantDTO, error) {
+
+	merchant, err := ms.merchantRepository.GetMyMerchant(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]products.MerchantInfo, len(merchants))
-	for i, m := range merchants {
-		// mapping produk entity -> DTO
-		result[i] = products.MerchantInfo{
-			ID:           m.ID,
-			UserID:       m.UserID,
-			Name:         m.Name,
-			Description:  m.Description,
-			Type:         m.Type,
-			Location:     m.Location,
-			ProfilePhoto: m.ProfilePhoto,
-			CreatedAt:    m.CreatedAt,
-			UpdatedAt:    m.UpdatedAt,
-		}
+	if merchant == nil {
+		return nil, nil // ✅ kondisi normal
 	}
 
-	return result, nil
+	return &MerchantDTO{
+		ID:              merchant.ID,
+		UserID:          merchant.UserID,
+		Name:            merchant.Name,
+		Description:     merchant.Description,
+		Type:            merchant.Type,
+		Location:        merchant.Location,
+		ProfilePhotoUrl: merchant.ProfilePhotoUrl,
+		BannerImageUrl:  merchant.BannerImageUrl,
+		GalleryPhotoUrl: merchant.GalleryPhotoUrl,
+		CreatedAt:       merchant.CreatedAt,
+		UpdatedAt:       merchant.UpdatedAt,
+	}, nil
 }

@@ -43,12 +43,17 @@ func (r *followerRepository) UnfollowMerchant(follow *Follow) (*Follow, error) {
 }
 
 func (r *followerRepository) GetFollowStatus(follow *Follow) (*Follow, error) {
-	var req Follow
-	result := r.db.Where("merchant_id = ? AND user_id = ?", follow.MerchantID, follow.UserID).Find(&req)
+	var result Follow
 
-	if result.Error != nil {
-		return nil, result.Error
+	err := r.db.Where("merchant_id = ? AND user_id = ?", follow.MerchantID, follow.UserID).First(&result).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+
 	}
 
-	return &req, nil
+	return &result, nil
 }

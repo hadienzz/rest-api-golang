@@ -5,8 +5,8 @@ import (
 	"go-fiber-api/internal/util/token"
 	"go-fiber-api/internal/util/upload"
 	"go-fiber-api/internal/util/validation"
+	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -31,74 +31,142 @@ func NewMerchantHandler(service MerchantService) MerchantHandler {
 }
 
 func (h *merchantHandler) AddMerchant(c *fiber.Ctx) error {
-	contentType := c.Get("Content-Type")
-	if contentType == "" || !strings.Contains(contentType, "multipart/form-data") {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "request must be multipart/form-data",
-		})
-	}
-
-	var req CreateMerchantRequest
-
-	// 1. Ambil file dari form
-	fileHeader, err := c.FormFile("profile_photo")
+	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "photo is required",
+			"message": "failed to parse multipart form",
 		})
 	}
 
 	ctx, cancel := context.WithTimeout(c.Context(), 45*time.Second)
 	defer cancel()
 
-	// 2. Upload ke Supabase pakai helper
-	uploadResult, err := upload.UploadToSupabaseStorage(
-		&ctx,
-		fileHeader,
+	// =========================
+	// 1. PROFILE PHOTO (single)
+	// =========================
+	profileFiles := form.File["profile_photo_url"]
+	if len(profileFiles) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "profile_photo is required",
+		})
+	}
+
+	profileResult, err := upload.UploadToSupabaseStorage(
+		ctx,
+		profileFiles[0],
 		"profiles",
 	)
+
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "upload to supabase failed",
-			"error":   err.Error(),
+			"message": "failed to upload profile photo",
 		})
 	}
 
-	// 3. Ambil field text
-	nameValue := c.FormValue("name")
-	descValue := c.FormValue("description")
-	typeValue := c.FormValue("type")
-	locationValue := c.FormValue("location")
+	// =========================
+	// 2. BANNER IMAGE (single)
+	// =========================
+	bannerFiles := form.File["banner_image_url"]
+	var bannerURL string
 
-	parsedLocation, err := strconv.ParseFloat(locationValue, 32)
-	if err != nil {
+	if len(bannerFiles) > 0 {
+		bannerResult, err := upload.UploadToSupabaseStorage(
+			ctx,
+			bannerFiles[0],
+			"banners",
+		)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "failed to upload banner image",
+			})
+		}
+		bannerURL = bannerResult.PublicURL
+	}
+
+	// =========================
+	// 3. GALLERY PHOTOS (multiple)
+	// =========================
+	galleryFiles := form.File["gallery_photos"]
+	if len(galleryFiles) > 6 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "location must be a valid number",
-			"error":   err.Error(),
+			"message": "maximum 6 gallery photos allowed",
 		})
 	}
 
+	galleryURLs := make([]string, 0, len(galleryFiles))
+
+	for _, fileHeader := range galleryFiles {
+		result, err := upload.UploadToSupabaseStorage(
+			ctx,
+			fileHeader,
+			"galleries",
+		)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "failed to upload gallery photo",
+			})
+		}
+		galleryURLs = append(galleryURLs, result.PublicURL)
+	}
+
+	// =========================
+	// 4. BUILD REQUEST DTO
+	// =========================
 	userIDFromToken := c.Locals("user_id").(*token.CustomClaims).UserID
 
-	// 4. Isi struct request
-	req.Name = nameValue
-	req.Description = descValue
-	req.Type = typeValue
-	req.Location = float32(parsedLocation)
-	req.UserID = userIDFromToken.String()
-	req.ProfilePhoto = uploadResult.PublicURL
-	// 5. Validasi
+	latitudeStr := c.FormValue("latitude")
+	latitude, err := strconv.ParseFloat(latitudeStr, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "invalid latitude value",
+		})
+	}
+
+	longitudeStr := c.FormValue("longitude")
+	longitude, err := strconv.ParseFloat(longitudeStr, 64)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "invalid longitude value",
+		})
+	}
+
+	req := MerchantDTO{
+		UserID:          userIDFromToken,
+		Name:            c.FormValue("name"),
+		Description:     c.FormValue("description"),
+		Type:            c.FormValue("type"),
+		Location:        c.FormValue("location"),
+		ProfilePhotoUrl: profileResult.PublicURL,
+		BannerImageUrl:  bannerURL,
+		GalleryPhotoUrl: galleryURLs,
+		GoogleMapUrl:    c.FormValue("google_maps_url"),
+		IFrameMapUrl:    c.FormValue("iframe_maps_url"),
+		Latitude:        latitude,
+		Longitude:       longitude,
+	}
+
+	// =========================
+	// 5. VALIDATION
+	// =========================
 	if errorMessages, err := validation.ValidateStruct(req); err != nil {
+		log.Println("validation internal error:", err)
+
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "validation internal error",
 		})
 	} else if len(errorMessages) > 0 {
+		log.Println("validation failed:", errorMessages)
+
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Validation Failed",
+			"message": "validation failed",
 			"errors":  errorMessages,
 		})
 	}
 
+	// =========================
+	// 6. SERVICE CALL
+	// =========================
 	if err := h.merchantService.AddMerchant(&req); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "failed to create merchant",
@@ -151,17 +219,23 @@ func (h *merchantHandler) GetAllMerchant(c *fiber.Ctx) error {
 }
 
 func (h *merchantHandler) GetMyMerchant(c *fiber.Ctx) error {
-	userIDFromToken := c.Locals("user_id").(*token.CustomClaims).UserID
+	claims := c.Locals("user_id").(*token.CustomClaims)
+	userID := claims.UserID
 
-	merchants, err := h.merchantService.GetMyMerchant(userIDFromToken)
+	merchant, err := h.merchantService.GetMyMerchant(userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "failed to retrieve merchants",
+			"message": "failed to retrieve merchant",
+		})
+	}
+
+	if merchant == nil {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"data": nil,
 		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "merchants retrieved",
-		"data":    merchants,
+		"data": merchant,
 	})
 }
