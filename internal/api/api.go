@@ -51,8 +51,9 @@ func RegisterProductRoutes(app *fiber.App, db *gorm.DB) {
 	productService := products.NewProductService(productRepo, merchantAdapter)
 	productHandler := products.NewProductHandler(productService, merchantAdapter)
 
+	api.Post("/bulk-delete", middleware.AuthRequired, productHandler.BulkDeleteMerchantProducts)
+	api.Post("/add/:merchant_id", middleware.AuthRequired, productHandler.CreateProduct)
 	api.Get("/merchant/:id", productHandler.GetMerchantProducts)
-	api.Post("/add", middleware.AuthRequired, productHandler.CreateProduct)
 }
 
 func RegisterFollowRoutes(app *fiber.App, db *gorm.DB) {

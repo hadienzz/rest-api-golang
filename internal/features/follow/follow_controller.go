@@ -1,6 +1,7 @@
 package follow
 
 import (
+	"go-fiber-api/internal/common/response"
 	"go-fiber-api/internal/util/token"
 	"log"
 
@@ -31,27 +32,20 @@ func (h *followController) FollowMerchant(c *fiber.Ctx) error {
 	parsedId, err := uuid.Parse(id)
 
 	if parsedId == uuid.Nil || err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "invalid merchant ID",
-		})
+		return response.Fail(c, fiber.StatusBadRequest, "invalid merchant ID")
 	}
 
 	claims := c.Locals("user_id").(*token.CustomClaims).UserID
 	req.MerchantID = parsedId
 	req.UserID = claims
 
-	response, err := h.service.FollowMerchant(&req)
+	followResp, err := h.service.FollowMerchant(&req)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return response.Fail(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "merchant followed successfully",
-		"data":    response,
-	})
+	return response.Success(c, "merchant followed successfully", followResp)
 }
 
 func (h *followController) UnfollowMerchant(c *fiber.Ctx) error {
@@ -61,9 +55,7 @@ func (h *followController) UnfollowMerchant(c *fiber.Ctx) error {
 	parsedId, err := uuid.Parse(id)
 
 	if parsedId == uuid.Nil || err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "invalid merchant ID",
-		})
+		return response.Fail(c, fiber.StatusBadRequest, "invalid merchant ID")
 	}
 	claims := c.Locals("user_id").(*token.CustomClaims).UserID
 	req.MerchantID = parsedId
@@ -72,14 +64,9 @@ func (h *followController) UnfollowMerchant(c *fiber.Ctx) error {
 	unfollowed, err := h.service.UnfollowMerchant(&req)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return response.Fail(c, fiber.StatusInternalServerError, err.Error())
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "merchant unfollowed successfully",
-		"data":    unfollowed,
-	})
+	return response.Success(c, "merchant unfollowed successfully", unfollowed)
 }
 
 func (h *followController) GetMerchantFollowStatus(c *fiber.Ctx) error {
@@ -91,26 +78,19 @@ func (h *followController) GetMerchantFollowStatus(c *fiber.Ctx) error {
 	parsedId, err := uuid.Parse(id)
 
 	if parsedId == uuid.Nil || err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "invalid merchant ID",
-		})
+		return response.Fail(c, fiber.StatusBadRequest, "invalid merchant ID")
 	}
 	followReq.UserID = user_id
 	followReq.MerchantID = parsedId
 
-	response, err := h.service.GetMerchantFollowStatus(&followReq)
+	followResp, err := h.service.GetMerchantFollowStatus(&followReq)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
-		})
+		return response.Fail(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	log.Println(response)
+	log.Println(followResp)
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "follow status retrieved successfully",
-		"data":    response,
-	})
+	return response.Success(c, "follow status retrieved successfully", followResp)
 
 }

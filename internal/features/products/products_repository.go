@@ -1,13 +1,15 @@
 package products
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type ProductRepository interface {
 	CreateProduct(product *Product) (*Product, error)
 	FindByUserID(userID string) ([]Product, error)
-	GetMerchantProducts(merchantID string) ([]Product, error)
+	GetMerchantProducts(merchantID uuid.UUID) ([]Product, error)
+	DeleteMerchantProduct(productID []uuid.UUID, merchantID uuid.UUID) error
 }
 
 type productRepository struct {
@@ -43,7 +45,7 @@ func (pr *productRepository) FindByUserID(userID string) ([]Product, error) {
 	return products, nil
 }
 
-func (pr *productRepository) GetMerchantProducts(merchantID string) ([]Product, error) {
+func (pr *productRepository) GetMerchantProducts(merchantID uuid.UUID) ([]Product, error) {
 	var products []Product
 	result := pr.db.Where("merchant_id = ?", merchantID).Find(&products)
 
@@ -52,4 +54,15 @@ func (pr *productRepository) GetMerchantProducts(merchantID string) ([]Product, 
 	}
 
 	return products, nil
+}
+
+func (pr *productRepository) DeleteMerchantProduct(productID []uuid.UUID, merchantID uuid.UUID) error {
+	result := pr.db.
+		Where("id IN ?", productID).Delete(&Product{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
