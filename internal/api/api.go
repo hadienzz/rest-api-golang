@@ -23,7 +23,6 @@ func RegisterAuthRoutes(app *fiber.App, db *gorm.DB) {
 	api.Post("/register", authHandler.RegisterUser)
 	api.Post("/login", authHandler.LoginUser)
 
-	// Protected route to get current authenticated user
 	api.Get("/user", middleware.AuthRequired, authHandler.GetUser)
 }
 
@@ -36,7 +35,9 @@ func RegisterMerchantRoutes(app *fiber.App, db *gorm.DB) {
 	api.Post("/create", middleware.AuthRequired, merchantHandler.AddMerchant)
 
 	api.Get("/all", merchantHandler.GetAllMerchant)
-	api.Get("/my-merchant", middleware.AuthRequired, merchantHandler.GetMyMerchant)
+	api.Get("/my-summary", middleware.AuthRequired, merchantHandler.GetMyMerchantsSummary)
+	api.Get("/my-merchant/:id", middleware.AuthRequired, merchantHandler.GetMyMerchantDashboard)
+
 	api.Get("/:id", merchantHandler.GetMerchantById)
 }
 
@@ -54,6 +55,7 @@ func RegisterProductRoutes(app *fiber.App, db *gorm.DB) {
 	api.Post("/bulk-delete", middleware.AuthRequired, productHandler.BulkDeleteMerchantProducts)
 	api.Post("/add/:merchant_id", middleware.AuthRequired, productHandler.CreateProduct)
 	api.Get("/merchant/:id", productHandler.GetMerchantProducts)
+	// api.Get("/me")
 }
 
 func RegisterFollowRoutes(app *fiber.App, db *gorm.DB) {
@@ -65,4 +67,5 @@ func RegisterFollowRoutes(app *fiber.App, db *gorm.DB) {
 	api.Post("/merchant/:id", middleware.AuthRequired, followHandler.FollowMerchant)
 	api.Delete("/merchant/:id", middleware.AuthRequired, followHandler.UnfollowMerchant)
 	api.Get("/merchant/:id/status", middleware.AuthRequired, followHandler.GetMerchantFollowStatus)
+	// api.Get("/merchant", middleware.AuthRequired, follow)
 }

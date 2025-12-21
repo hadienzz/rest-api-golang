@@ -18,7 +18,8 @@ type MerchantHandler interface {
 	AddMerchant(c *fiber.Ctx) error
 	GetMerchantById(c *fiber.Ctx) error
 	GetAllMerchant(c *fiber.Ctx) error
-	GetMyMerchant(c *fiber.Ctx) error
+	GetMyMerchantDashboard(c *fiber.Ctx) error
+	GetMyMerchantsSummary(c *fiber.Ctx) error
 }
 
 type merchantHandler struct {
@@ -180,7 +181,7 @@ func (h *merchantHandler) GetAllMerchant(c *fiber.Ctx) error {
 	return response.Success(c, "merchants retrieved", merchants)
 }
 
-func (h *merchantHandler) GetMyMerchant(c *fiber.Ctx) error {
+func (h *merchantHandler) GetMyMerchantDashboard(c *fiber.Ctx) error {
 	claims := c.Locals("user_id").(*token.CustomClaims)
 	userID := claims.UserID
 
@@ -195,4 +196,20 @@ func (h *merchantHandler) GetMyMerchant(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, "merchant retrieved", merchant)
+}
+
+func (h *merchantHandler) GetMyMerchantsSummary(c *fiber.Ctx) error {
+	user_id := c.Locals("user_id").(*token.CustomClaims).UserID
+
+	merchant, err := h.merchantService.GetMyMerchantsSummary(user_id)
+
+	if err != nil {
+		return response.Fail(c, fiber.StatusInternalServerError, "failed to retrieve merchants")
+	}
+
+	if len(merchant) == 0 {
+		return response.Success(c, "this account does not have merchant", []MerchantSummary{})
+	}
+
+	return response.Success(c, "merchants retrieved", merchant)
 }

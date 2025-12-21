@@ -52,3 +52,7 @@ func (a *MerchantServiceAdapter) GetMyMerchants(userID uuid.UUID) (*products.Mer
 		ProfilePhotoUrl: merchants.ProfilePhotoUrl,
 	}, nil
 }
+
+// func (a *products.MerchantServiceContract) GetFollowedMerchant(userID uuid.UUID) ([]products.MerchantInfo, error) {
+
+// }

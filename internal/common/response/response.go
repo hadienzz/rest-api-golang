@@ -4,7 +4,7 @@ import "github.com/gofiber/fiber/v2"
 
 type ApiResponse[T any] struct {
 	Message string `json:"message"`
-	Data    T      `json:"data,omitempty"`
+	Data    T      `json:"data"`
 }
 
 func Success[T any](c *fiber.Ctx, message string, data T) error {

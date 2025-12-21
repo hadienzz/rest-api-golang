@@ -36,3 +36,11 @@ type MerchantDTO struct {
 	CreatedAt sql.NullTime `json:"created_at"`
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
+
+type MerchantSummary struct {
+	ID              uuid.UUID `json:"id"`
+	UserID          uuid.UUID `json:"user_id"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	ProfilePhotoUrl string    `json:"profile_photo_url"`
+}

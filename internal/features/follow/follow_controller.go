@@ -94,3 +94,10 @@ func (h *followController) GetMerchantFollowStatus(c *fiber.Ctx) error {
 	return response.Success(c, "follow status retrieved successfully", followResp)
 
 }
+
+// func (h *followController) GetMyFollowedMerchants(c *fiber.Ctx) error {
+// 	user_id := c
+// 	Locals("user_id").(*token.CustomClaims).UserID
+
+// 	followedMerchants, err := h.service.GetMyFollowedMerchants(user_id)
+// }
