@@ -10,6 +10,8 @@ type ProductRepository interface {
 	FindByUserID(userID string) ([]Product, error)
 	GetMerchantProducts(merchantID uuid.UUID) ([]Product, error)
 	DeleteMerchantProduct(productID []uuid.UUID, merchantID uuid.UUID) error
+	GetMerchantProductsDashboard(merchantID uuid.UUID) ([]Product, error)
+	GetProductsByIDs(ids []uuid.UUID) ([]Product, error)
 }
 
 type productRepository struct {
@@ -65,4 +67,30 @@ func (pr *productRepository) DeleteMerchantProduct(productID []uuid.UUID, mercha
 	}
 
 	return nil
+}
+
+func (pr *productRepository) GetMerchantProductsDashboard(merchantID uuid.UUID) ([]Product, error) {
+	var products []Product
+
+	result := pr.db.Where("merchant_id = ?", merchantID).Find(&products)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return products, nil
+}
+
+func (pr *productRepository) GetProductsByIDs(ids []uuid.UUID) ([]Product, error) {
+	var products []Product
+	if len(ids) == 0 {
+		return products, nil
+	}
+
+	result := pr.db.Where("id IN ?", ids).Find(&products)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return products, nil
 }

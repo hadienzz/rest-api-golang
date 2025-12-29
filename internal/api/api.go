@@ -5,6 +5,7 @@ import (
 	"go-fiber-api/internal/features/follow"
 	"go-fiber-api/internal/features/merchant"
 	"go-fiber-api/internal/features/products"
+	"go-fiber-api/internal/features/transaction"
 
 	// "go-fiber-api/internal/features/products"
 	"go-fiber-api/internal/middleware"
@@ -37,7 +38,7 @@ func RegisterMerchantRoutes(app *fiber.App, db *gorm.DB) {
 	api.Get("/all", merchantHandler.GetAllMerchant)
 	api.Get("/my-summary", middleware.AuthRequired, merchantHandler.GetMyMerchantsSummary)
 	api.Get("/my-merchant/:id", middleware.AuthRequired, merchantHandler.GetMyMerchantDashboard)
-
+	api.Get("/display", merchantHandler.GetMerchantDisplay)
 	api.Get("/:id", merchantHandler.GetMerchantById)
 }
 
@@ -52,9 +53,10 @@ func RegisterProductRoutes(app *fiber.App, db *gorm.DB) {
 	productService := products.NewProductService(productRepo, merchantAdapter)
 	productHandler := products.NewProductHandler(productService, merchantAdapter)
 
+	api.Get("/dashboard/:merchant_id", middleware.AuthRequired, productHandler.GetMerchantProductsDashboard)
+	api.Get("/merchant/:id", productHandler.GetMerchantProducts)
 	api.Post("/bulk-delete", middleware.AuthRequired, productHandler.BulkDeleteMerchantProducts)
 	api.Post("/add/:merchant_id", middleware.AuthRequired, productHandler.CreateProduct)
-	api.Get("/merchant/:id", productHandler.GetMerchantProducts)
 	// api.Get("/me")
 }
 
@@ -68,4 +70,18 @@ func RegisterFollowRoutes(app *fiber.App, db *gorm.DB) {
 	api.Delete("/merchant/:id", middleware.AuthRequired, followHandler.UnfollowMerchant)
 	api.Get("/merchant/:id/status", middleware.AuthRequired, followHandler.GetMerchantFollowStatus)
 	// api.Get("/merchant", middleware.AuthRequired, follow)
+}
+
+func RegisterTransactionRoutes(app *fiber.App, db *gorm.DB) {
+	api := app.Group("/api/transactions")
+
+	transactionRepo := transaction.NewTransactionRepository(db)
+	transactionItemRepo := transaction.NewTransactionItemRepository(db)
+	productRepo := products.NewProductRepository(db)
+
+	transactionService := transaction.NewTransactionService(db, transactionRepo, transactionItemRepo, productRepo)
+	transactionHandler := transaction.NewTransactionHandler(transactionService)
+
+	api.Post("/", middleware.AuthRequired, transactionHandler.CreateTransaction)
+	api.Post("/webhook/midtrans", transactionHandler.HandleMidtransWebhook)
 }

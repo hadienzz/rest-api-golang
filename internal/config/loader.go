@@ -19,5 +19,8 @@ func Get() *Config {
 		JwtKey:             os.Getenv("JWT_SECRET_KEY"),
 		SupabaseURL:        os.Getenv("SUPABASE_URL"),
 		SupabaseServiceKey: os.Getenv("SUPABASE_SERVICE_KEY"),
+		MidtransServerKey:  os.Getenv("MIDTRANS_SERVER_KEY"),
+		MidtransClientKey:  os.Getenv("MIDTRANS_CLIENT_KEY"),
+		MidtransMerchantID: os.Getenv("MIDTRANS_MERCHANT_ID"),
 	}
 }

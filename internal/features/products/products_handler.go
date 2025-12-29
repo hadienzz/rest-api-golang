@@ -18,6 +18,7 @@ type ProductHandler interface {
 	CreateProduct(c *fiber.Ctx) error
 	GetMerchantProducts(c *fiber.Ctx) error
 	BulkDeleteMerchantProducts(c *fiber.Ctx) error
+	GetMerchantProductsDashboard(c *fiber.Ctx) error
 }
 
 type productHandler struct {
@@ -146,4 +147,23 @@ func (ph *productHandler) BulkDeleteMerchantProducts(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessNoData(c, "products deleted")
+}
+
+func (ph *productHandler) GetMerchantProductsDashboard(c *fiber.Ctx) error {
+	params := c.Params("merchant_id")
+
+	merchantID, err := uuid.Parse(params)
+
+	if err != nil || merchantID == uuid.Nil {
+		return response.Fail(c, fiber.StatusBadRequest, "invalid merchant id")
+	}
+
+	products, err := ph.productService.GetMerchantProductsDashboard(merchantID)
+
+	if err != nil {
+		return response.Fail(c, fiber.StatusInternalServerError, "failed to get products")
+	}
+
+	return response.Success(c, "product dashboard received", products)
+
 }

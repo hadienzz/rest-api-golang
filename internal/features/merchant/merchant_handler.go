@@ -20,6 +20,7 @@ type MerchantHandler interface {
 	GetAllMerchant(c *fiber.Ctx) error
 	GetMyMerchantDashboard(c *fiber.Ctx) error
 	GetMyMerchantsSummary(c *fiber.Ctx) error
+	GetMerchantDisplay(c *fiber.Ctx) error
 }
 
 type merchantHandler struct {
@@ -132,6 +133,8 @@ func (h *merchantHandler) AddMerchant(c *fiber.Ctx) error {
 		Longitude:       longitude,
 	}
 
+	log.Println("MerchantDTO:", req)
+
 	// =========================
 	// 5. VALIDATION
 	// =========================
@@ -212,4 +215,14 @@ func (h *merchantHandler) GetMyMerchantsSummary(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, "merchants retrieved", merchant)
+}
+
+func (h *merchantHandler) GetMerchantDisplay(c *fiber.Ctx) error {
+	merchants, err := h.merchantService.GetMerchantDisplay()
+
+	if err != nil {
+		return response.Fail(c, fiber.StatusInternalServerError, "failed to get merchant display")
+	}
+
+	return response.Success(c, "merchants retrieved", merchants)
 }

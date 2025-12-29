@@ -31,3 +31,16 @@ type ProductDTO struct {
 type BulkDeleteProductRequest struct {
 	ProductIDs []uuid.UUID `json:"product_ids"`
 }
+
+type ProductDashboard struct {
+	ID              uuid.UUID       `json:"id"`
+	MerchantID      uuid.UUID       `json:"merchant_id"`
+	Name            string          `json:"name"`
+	Description     string          `json:"description"`
+	Price           decimal.Decimal `json:"price"`
+	Quantity        int             `json:"quantity"`
+	ProductPhotoUrl string          `json:"product_photo_url"`
+
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}

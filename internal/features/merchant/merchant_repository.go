@@ -13,6 +13,7 @@ type MerchantRepository interface {
 	GetAllMerchant() ([]Merchant, error)
 	GetMyMerchant(userID uuid.UUID) (*Merchant, error) // nanti ganti jadi dashboard
 	GetMyMerchantsSummary(userID uuid.UUID) ([]MerchantSummary, error)
+	GetMerchantDisplay() ([]MerchantSummary, error)
 }
 
 type merchantRepository struct {
@@ -96,4 +97,17 @@ func (mr *merchantRepository) GetMyMerchantsSummary(
 	}
 
 	return merchant, nil
+}
+
+func (mr *merchantRepository) GetMerchantDisplay() ([]MerchantSummary, error) {
+	var merchant []MerchantSummary
+
+	err := mr.db.
+		Table("merchants").
+		Select("id, name, description, profile_photo_url").
+		Limit(4).
+		Find(&merchant).
+		Error
+
+	return merchant, err
 }

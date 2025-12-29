@@ -11,6 +11,7 @@ type ProductService interface {
 	CreateProduct(product *CreateProductRequest) (*ProductDTO, error)
 	GetMerchantProducts(merchantID uuid.UUID) ([]ProductDTO, error)
 	DeleteMerchantProduct(productID []uuid.UUID, merchantID uuid.UUID) error
+	GetMerchantProductsDashboard(merchantID uuid.UUID) ([]ProductDashboard, error)
 }
 
 type productService struct {
@@ -87,4 +88,30 @@ func (ps *productService) GetMerchantProducts(merchantID uuid.UUID) ([]ProductDT
 
 func (ps *productService) DeleteMerchantProduct(productID []uuid.UUID, merchantID uuid.UUID) error {
 	return ps.productRepository.DeleteMerchantProduct(productID, merchantID)
+}
+
+func (ps *productService) GetMerchantProductsDashboard(merchantID uuid.UUID) ([]ProductDashboard, error) {
+	products, err := ps.productRepository.GetMerchantProductsDashboard(merchantID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]ProductDashboard, 0, len(products))
+	for _, e := range products {
+		responses = append(responses, ProductDashboard{
+			ID:              e.ID,
+			MerchantID:      e.MerchantID,
+			Name:            e.Name,
+			Description:     e.Description,
+			Price:           e.Price,
+			Quantity:        e.Quantity,
+			ProductPhotoUrl: e.ProductPhotoUrl,
+			CreatedAt:       e.CreatedAt,
+			UpdatedAt:       e.UpdatedAt,
+		})
+	}
+
+	return responses, nil
+
 }

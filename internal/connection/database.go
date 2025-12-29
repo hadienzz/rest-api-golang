@@ -9,6 +9,7 @@ import (
 	"go-fiber-api/internal/features/follow"
 	"go-fiber-api/internal/features/merchant"
 	"go-fiber-api/internal/features/products"
+	"go-fiber-api/internal/features/transaction"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -42,6 +43,8 @@ func migrate(db *gorm.DB) error {
 		&merchant.Merchant{},
 		&products.Product{},
 		&follow.Follow{},
+		&transaction.Transaction{},
+		&transaction.TransactionItem{},
 	); err != nil {
 		return fmt.Errorf("auto migrate failed: %w", err)
 	}

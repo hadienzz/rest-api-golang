@@ -33,7 +33,7 @@ func (s *followService) FollowMerchant(request *FollowRequest) (*FollowResponse,
 	return &FollowResponse{
 		IsFollowing: true,
 		MerchantID:  createdFollow.MerchantID,
-		FollowedAt:  createdFollow.CreatedAt.Time,
+		FollowedAt:  createdFollow.CreatedAt,
 	}, nil
 }
 
