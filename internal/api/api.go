@@ -83,5 +83,7 @@ func RegisterTransactionRoutes(app *fiber.App, db *gorm.DB) {
 	transactionHandler := transaction.NewTransactionHandler(transactionService)
 
 	api.Post("/", middleware.AuthRequired, transactionHandler.CreateTransaction)
+	api.Get("/:orderId", middleware.AuthRequired, transactionHandler.GetTransactionDetail)
+	api.Get("/history", middleware.AuthRequired, transactionHandler.GetTransactionsByUserID)
 	api.Post("/webhook/midtrans", transactionHandler.HandleMidtransWebhook)
 }

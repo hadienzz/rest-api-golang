@@ -3,6 +3,7 @@ package transaction
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -11,6 +12,7 @@ type TransactionRepository interface {
 	FindByOrderID(orderID string) (*Transaction, error)
 	FindByIdempotencyKey(key string) (*Transaction, error)
 	UpdateStatusAndPaymentType(orderID string, status TransactionStatus, paymentType string) error
+	GetTransactionsByUserID(userID uuid.UUID) ([]Transaction, error)
 }
 
 type transactionRepository struct {
@@ -43,6 +45,7 @@ func (r *transactionRepository) FindByIdempotencyKey(key string) (*Transaction, 
 	}
 	return &trx, nil
 }
+
 func (r *transactionRepository) UpdateStatusAndPaymentType(
 	orderID string,
 	status TransactionStatus,
@@ -68,4 +71,15 @@ func (r *transactionRepository) UpdateStatusAndPaymentType(
 	}
 
 	return nil
+}
+
+func (r *transactionRepository) GetTransactionsByUserID(userID uuid.UUID) ([]Transaction, error) {
+	var transactions []Transaction
+	result := r.db.Where("user_id = ?", userID).Find(&transactions)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return transactions, nil
 }

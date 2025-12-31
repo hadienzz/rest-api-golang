@@ -1,6 +1,10 @@
 package transaction
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type CreateTransactionItemRequest struct {
 	ProductID uuid.UUID `json:"product_id"`
@@ -26,4 +30,27 @@ type MidtransNotificationRequest struct {
 	FraudStatus       string `json:"fraud_status"`
 	PaymentType       string `json:"payment_type"`
 	OrderID           string `json:"order_id"`
+}
+
+// Response untuk detail transaksi beserta item-nya
+
+type TransactionItemResponse struct {
+	ID          uuid.UUID `json:"id"`
+	ProductID   uuid.UUID `json:"product_id"`
+	ProductName string    `json:"product_name"`
+	Quantity    int       `json:"quantity"`
+	Price       int64     `json:"price"`
+	Subtotal    int64     `json:"subtotal"`
+}
+
+type TransactionDetailResponse struct {
+	ID           uuid.UUID                 `json:"id"`
+	OrderID      string                    `json:"order_id"`
+	Status       string                    `json:"status"`
+	TotalAmount  int64                     `json:"total_amount"`
+	PaymentType  string                    `json:"payment_type"`
+	MerchantID   uuid.UUID                 `json:"merchant_id"`
+	MerchantName string                    `json:"merchant_name"`
+	CreatedAt    time.Time                 `json:"created_at"`
+	Items        []TransactionItemResponse `json:"items"`
 }

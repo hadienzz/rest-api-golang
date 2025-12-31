@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/midtrans/midtrans-go"
+	"gorm.io/gorm"
 )
 
 type TransactionHandler struct {
@@ -31,6 +32,8 @@ func (h *TransactionHandler) CreateTransaction(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return response.Fail(c, http.StatusBadRequest, "invalid request body")
 	}
+
+	log.Println("Creating transaction merchant: ", req.MerchantID, "idempotencykey:", req.IdempotencyKey)
 
 	result, err := h.service.CreateTransaction(claims.UserID, &req)
 	if err != nil {
@@ -62,4 +65,33 @@ func (h *TransactionHandler) HandleMidtransWebhook(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(http.StatusOK)
+}
+
+func (h *TransactionHandler) GetTransactionDetail(c *fiber.Ctx) error {
+	orderID := c.Params("orderId")
+	if orderID == "" {
+		return response.Fail(c, http.StatusBadRequest, "order_id is required")
+	}
+
+	result, err := h.service.GetTransactionDetail(orderID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return response.Fail(c, http.StatusNotFound, "transaction not found")
+		}
+		return response.Fail(c, http.StatusBadRequest, err.Error())
+	}
+
+	return response.Success(c, "transaction detail", result)
+}
+
+func (h *TransactionHandler) GetTransactionsByUserID(c *fiber.Ctx) error {
+	user_id := c.Locals("user_id").(*token.CustomClaims).UserID
+
+	result, err := h.service.GetTransactionsByUserID(user_id)
+	if err != nil {
+		return response.Fail(c, http.StatusBadRequest, err.Error())
+
+	}
+
+	return response.Success(c, "user transactions", result)
 }

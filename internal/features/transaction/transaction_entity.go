@@ -21,11 +21,11 @@ type Transaction struct {
 	ID         uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	UserID     uuid.UUID `gorm:"type:uuid;not null;index"`
 	MerchantID uuid.UUID `gorm:"type:uuid;not null;index"`
+	OrderID    string    `gorm:"type:varchar(100);not null;uniqueIndex"`
 
 	// IdempotencyKey digunakan untuk mencegah duplikasi payment/order
 	IdempotencyKey string `gorm:"type:varchar(100);not null;uniqueIndex"`
 
-	OrderID     string            `gorm:"type:varchar(100);not null;uniqueIndex"`
 	Status      TransactionStatus `gorm:"type:varchar(50);not null;default:'PENDING'"`
 	TotalAmount int64             `gorm:"type:bigint;not null"`
 	PaymentType string            `gorm:"type:varchar(50)"`

@@ -16,6 +16,8 @@ import (
 type TransactionService interface {
 	CreateTransaction(userID uuid.UUID, req *CreateTransactionRequest) (*CreateTransactionResponse, error)
 	HandleMidtransWebhook(req *MidtransNotificationRequest) error
+	GetTransactionDetail(orderID string) (*TransactionDetailResponse, error)
+	GetTransactionsByUserID(userID uuid.UUID) ([]TransactionDetailResponse, error)
 }
 
 type transactionService struct {
@@ -146,11 +148,12 @@ func (s *transactionService) CreateTransaction(userID uuid.UUID, req *CreateTran
 	}
 
 	transaction := &Transaction{
-		UserID:      userID,
-		MerchantID:  req.MerchantID,
-		OrderID:     orderID,
-		Status:      TransactionStatusPending,
-		TotalAmount: totalAmount,
+		UserID:         userID,
+		MerchantID:     req.MerchantID,
+		OrderID:        orderID,
+		Status:         TransactionStatusPending,
+		TotalAmount:    totalAmount,
+		IdempotencyKey: req.IdempotencyKey,
 	}
 
 	err = s.db.Transaction(func(tx *gorm.DB) error {
@@ -252,4 +255,70 @@ func (s *transactionService) HandleMidtransWebhook(
 			newStatus,
 			req.PaymentType,
 		)
+}
+
+func (s *transactionService) GetTransactionDetail(orderID string) (*TransactionDetailResponse, error) {
+	if orderID == "" {
+		return nil, fmt.Errorf("order_id is required")
+	}
+
+	var tx Transaction
+	if err := s.db.
+		Preload("Items.Product").
+		Preload("Merchant").
+		Where("order_id = ?", orderID).
+		First(&tx).Error; err != nil {
+		return nil, err
+	}
+
+	items := make([]TransactionItemResponse, 0, len(tx.Items))
+	for _, item := range tx.Items {
+		items = append(items, TransactionItemResponse{
+			ID:          item.ID,
+			ProductID:   item.ProductID,
+			ProductName: item.Product.Name,
+			Quantity:    item.Quantity,
+			Price:       item.Price,
+			Subtotal:    item.Subtotal,
+		})
+	}
+
+	resp := &TransactionDetailResponse{
+		ID:           tx.ID,
+		OrderID:      tx.OrderID,
+		Status:       string(tx.Status),
+		TotalAmount:  tx.TotalAmount,
+		PaymentType:  tx.PaymentType,
+		MerchantID:   tx.MerchantID,
+		MerchantName: tx.Merchant.Name,
+		CreatedAt:    tx.CreatedAt,
+		Items:        items,
+	}
+
+	return resp, nil
+}
+
+func (s *transactionService) GetTransactionsByUserID(userID uuid.UUID) ([]TransactionDetailResponse, error) {
+	var transactions []Transaction
+
+	transactions, err := s.transactionRepository.GetTransactionsByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp []TransactionDetailResponse
+
+	for _, tx := range transactions {
+		resp = append(resp, TransactionDetailResponse{
+			ID:          tx.ID,
+			OrderID:     tx.OrderID,
+			Status:      string(tx.Status),
+			TotalAmount: tx.TotalAmount,
+			PaymentType: tx.PaymentType,
+			CreatedAt:   tx.CreatedAt,
+		})
+	}
+
+	return resp, nil
+
 }
