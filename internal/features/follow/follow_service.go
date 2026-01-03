@@ -4,6 +4,7 @@ type FollowService interface {
 	FollowMerchant(request *FollowRequest) (*FollowResponse, error)
 	UnfollowMerchant(request *FollowRequest) (*FollowResponse, error)
 	GetMerchantFollowStatus(request *FollowRequest) (*FollowResponse, error)
+	// GetMyFollowedMerchants(userID uuid.UUID) ([]MerchantDTO, error)
 }
 
 type followService struct {
@@ -32,7 +33,7 @@ func (s *followService) FollowMerchant(request *FollowRequest) (*FollowResponse,
 	return &FollowResponse{
 		IsFollowing: true,
 		MerchantID:  createdFollow.MerchantID,
-		FollowedAt:  createdFollow.CreatedAt.Time,
+		FollowedAt:  createdFollow.CreatedAt,
 	}, nil
 }
 
@@ -68,3 +69,13 @@ func (s *followService) GetMerchantFollowStatus(request *FollowRequest) (*Follow
 		MerchantID:  request.MerchantID,
 	}, nil
 }
+
+// func (s *followService) GetMyFollowedMerchants(userID uuid.UUID) ([]MerchantDTO, error) {
+// 	followedMerchants, err := s.repo.GetMyFollowedMerchants(userID)
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return followedMerchants, nil
+// }

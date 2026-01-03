@@ -2,6 +2,7 @@ package merchant
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 )
@@ -11,6 +12,8 @@ type MerchantService interface {
 	GetMerchantById(id uuid.UUID) (*MerchantDTO, error)
 	GetAllMerchant() ([]MerchantDTO, error)
 	GetMyMerchant(userID uuid.UUID) (*MerchantDTO, error)
+	GetMyMerchantsSummary(userID uuid.UUID) ([]MerchantSummary, error)
+	GetMerchantDisplay() ([]MerchantSummary, error)
 }
 
 type merchantService struct {
@@ -112,7 +115,7 @@ func (ms *merchantService) GetMyMerchant(
 	}
 
 	if merchant == nil {
-		return nil, nil // ✅ kondisi normal
+		return nil, nil
 	}
 
 	return &MerchantDTO{
@@ -128,4 +131,46 @@ func (ms *merchantService) GetMyMerchant(
 		CreatedAt:       merchant.CreatedAt,
 		UpdatedAt:       merchant.UpdatedAt,
 	}, nil
+}
+
+func (ms *merchantService) GetMyMerchantsSummary(userID uuid.UUID) ([]MerchantSummary, error) {
+	merchants, err := ms.merchantRepository.GetMyMerchantsSummary(userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]MerchantSummary, len(merchants))
+
+	for i, m := range merchants {
+		result[i] = MerchantSummary{
+			ID:              m.ID,
+			UserID:          m.UserID,
+			Name:            m.Name,
+			Description:     m.Description,
+			ProfilePhotoUrl: m.ProfilePhotoUrl,
+		}
+	}
+
+	return result, nil
+}
+
+func (ms *merchantService) GetMerchantDisplay() ([]MerchantSummary, error) {
+	merchants, err := ms.merchantRepository.GetMerchantDisplay()
+	if err != nil {
+		log.Println("error:", err)
+		return nil, err
+	}
+
+	result := make([]MerchantSummary, len(merchants))
+	for i, m := range merchants {
+		result[i] = MerchantSummary{
+			ID:              m.ID,
+			Name:            m.Name,
+			Description:     m.Description,
+			ProfilePhotoUrl: m.ProfilePhotoUrl,
+		}
+	}
+
+	return result, nil
 }

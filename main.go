@@ -13,10 +13,11 @@ func main() {
 	app := fiber.New()
 	db, err := connection.ConnectDB()
 	err = config.InitSupabase()
-
 	if err != nil {
 		panic("failed to initialize Supabase or Database: " + err.Error())
 	}
+
+	config.InitMidtrans()
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:3000",
@@ -29,5 +30,6 @@ func main() {
 	api.RegisterMerchantRoutes(app, db)
 	api.RegisterProductRoutes(app, db)
 	api.RegisterFollowRoutes(app, db)
+	api.RegisterTransactionRoutes(app, db)
 	app.Listen(":8080")
 }

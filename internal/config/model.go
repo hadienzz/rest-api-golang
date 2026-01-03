@@ -6,4 +6,7 @@ type Config struct {
 	JwtKey             string
 	SupabaseURL        string
 	SupabaseServiceKey string
+	MidtransClientKey  string
+	MidtransServerKey  string
+	MidtransMerchantID string
 }

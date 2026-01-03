@@ -11,7 +11,9 @@ type MerchantRepository interface {
 	CreateMerchant(merchant *Merchant) (*Merchant, error)
 	GetMerchantById(id uuid.UUID) (*Merchant, error)
 	GetAllMerchant() ([]Merchant, error)
-	GetMyMerchant(userID uuid.UUID) (*Merchant, error)
+	GetMyMerchant(userID uuid.UUID) (*Merchant, error) // nanti ganti jadi dashboard
+	GetMyMerchantsSummary(userID uuid.UUID) ([]MerchantSummary, error)
+	GetMerchantDisplay() ([]MerchantSummary, error)
 }
 
 type merchantRepository struct {
@@ -72,4 +74,40 @@ func (mr *merchantRepository) GetMyMerchant(
 	}
 
 	return &merchant, nil
+}
+
+func (mr *merchantRepository) GetMyMerchantsSummary(
+	userID uuid.UUID,
+) ([]MerchantSummary, error) {
+
+	var merchant []MerchantSummary
+
+	err := mr.db.
+		Table("merchants").
+		Select("id, user_id, name, description, profile_photo_url").
+		Where("user_id = ?", userID).
+		Find(&merchant).
+		Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return merchant, nil
+}
+
+func (mr *merchantRepository) GetMerchantDisplay() ([]MerchantSummary, error) {
+	var merchant []MerchantSummary
+
+	err := mr.db.
+		Table("merchants").
+		Select("id, name, description, profile_photo_url").
+		Limit(4).
+		Find(&merchant).
+		Error
+
+	return merchant, err
 }
