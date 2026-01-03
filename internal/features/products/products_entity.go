@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 type Product struct {
@@ -19,4 +20,5 @@ type Product struct {
 
 	CreatedAt sql.NullTime
 	UpdatedAt sql.NullTime
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }

@@ -3,9 +3,10 @@ package api
 import (
 	"go-fiber-api/internal/features/auth"
 	"go-fiber-api/internal/features/follow"
+	"go-fiber-api/internal/features/inventory"
 	"go-fiber-api/internal/features/merchant"
 	"go-fiber-api/internal/features/products"
-	"go-fiber-api/internal/features/transaction"
+	"go-fiber-api/internal/features/transactions"
 
 	// "go-fiber-api/internal/features/products"
 	"go-fiber-api/internal/middleware"
@@ -75,15 +76,26 @@ func RegisterFollowRoutes(app *fiber.App, db *gorm.DB) {
 func RegisterTransactionRoutes(app *fiber.App, db *gorm.DB) {
 	api := app.Group("/api/transactions")
 
-	transactionRepo := transaction.NewTransactionRepository(db)
-	transactionItemRepo := transaction.NewTransactionItemRepository(db)
+	transactionRepo := transactions.NewTransactionRepository(db)
+	transactionItemRepo := transactions.NewTransactionItemRepository(db)
 	productRepo := products.NewProductRepository(db)
+	stockMovementRepo := inventory.NewStockMovementRepository(db)
 
-	transactionService := transaction.NewTransactionService(db, transactionRepo, transactionItemRepo, productRepo)
-	transactionHandler := transaction.NewTransactionHandler(transactionService)
+	transactionService := transactions.NewTransactionService(db, transactionRepo, transactionItemRepo, productRepo, stockMovementRepo)
+	transactionHandler := transactions.NewTransactionHandler(transactionService)
+
+	api.Get("/history", middleware.AuthRequired, transactionHandler.GetTransactionsByUserID)
+	api.Get("/merchant/:merchant_id", middleware.AuthRequired, transactionHandler.GetTransactionsByMerchantID)
+	api.Get("/:transaction_id", middleware.AuthRequired, transactionHandler.GetTransactionDetail)
 
 	api.Post("/", middleware.AuthRequired, transactionHandler.CreateTransaction)
-	api.Get("/:orderId", middleware.AuthRequired, transactionHandler.GetTransactionDetail)
-	api.Get("/history", middleware.AuthRequired, transactionHandler.GetTransactionsByUserID)
+	api.Post("/:idempotency_key", middleware.AuthRequired, transactionHandler.ResumeTransaction)
 	api.Post("/webhook/midtrans", transactionHandler.HandleMidtransWebhook)
+}
+
+func RegisterStockMovementRoutes(app *fiber.App, db *gorm.DB) {
+	// api := app.Group("/api/stock-movements")
+	// stockMovementRepo := stockmovements.NewStockMovementRepository(db)
+	// stockMovementService := stockmovements.NewStockMovementService(stockMovementRepo)
+	// stockMovementHandler := stockmovements.NewStockMovementHandler(stockMovementService)
 }

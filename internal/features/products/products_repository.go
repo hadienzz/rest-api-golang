@@ -1,11 +1,15 @@
 package products
 
 import (
+	"log"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type ProductRepository interface {
+	WithTx(tx *gorm.DB) ProductRepository
+
 	CreateProduct(product *Product) (*Product, error)
 	FindByUserID(userID string) ([]Product, error)
 	GetMerchantProducts(merchantID uuid.UUID) ([]Product, error)
@@ -21,6 +25,12 @@ type productRepository struct {
 func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &productRepository{
 		db: db,
+	}
+}
+
+func (pr *productRepository) WithTx(tx *gorm.DB) ProductRepository {
+	return &productRepository{
+		db: tx,
 	}
 }
 
@@ -59,8 +69,8 @@ func (pr *productRepository) GetMerchantProducts(merchantID uuid.UUID) ([]Produc
 }
 
 func (pr *productRepository) DeleteMerchantProduct(productID []uuid.UUID, merchantID uuid.UUID) error {
-	result := pr.db.
-		Where("id IN ?", productID).Delete(&Product{})
+	result := pr.db.Where("id IN ?", productID).Delete(&Product{})
+	log.Printf("delete products | rows=%d | err=%v", result.RowsAffected, result.Error)
 
 	if result.Error != nil {
 		return result.Error

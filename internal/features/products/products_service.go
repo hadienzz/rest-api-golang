@@ -88,6 +88,7 @@ func (ps *productService) GetMerchantProducts(merchantID uuid.UUID) ([]ProductDT
 
 func (ps *productService) DeleteMerchantProduct(productID []uuid.UUID, merchantID uuid.UUID) error {
 	return ps.productRepository.DeleteMerchantProduct(productID, merchantID)
+
 }
 
 func (ps *productService) GetMerchantProductsDashboard(merchantID uuid.UUID) ([]ProductDashboard, error) {

@@ -143,7 +143,7 @@ func (ph *productHandler) BulkDeleteMerchantProducts(c *fiber.Ctx) error {
 		req.ProductIDs,
 		merchant.ID,
 	); err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, "failed to delete products")
+		return response.Fail(c, fiber.StatusInternalServerError, err.Error())
 	}
 
 	return response.SuccessNoData(c, "products deleted")
