@@ -3,10 +3,12 @@ package transactions
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"go-fiber-api/internal/config"
 	"go-fiber-api/internal/features/inventory"
 	"go-fiber-api/internal/features/products"
+	"go-fiber-api/internal/util/pagination"
 
 	"github.com/google/uuid"
 	"github.com/midtrans/midtrans-go"
@@ -21,7 +23,7 @@ type TransactionService interface {
 	GetTransactionDetail(transactionID string) (*TransactionDetailResponse, error)
 	GetTransactionsByUserID(userID uuid.UUID) ([]TransactionDetailResponse, error)
 	ResumeTransactionByIdempotencyKey(idempotencyKey string) (*CreateTransactionResponse, error)
-	GetTransactionsByMerchantID(merchantID uuid.UUID) ([]TransactionDTO, error)
+	GetTransactionsByMerchantID(merchantID uuid.UUID, page int, limit int) ([]TransactionDTO, pagination.Pagination, error)
 }
 
 type transactionService struct {
@@ -198,6 +200,9 @@ func (s *transactionService) CreateTransaction(userID uuid.UUID, req *CreateTran
 			GrossAmt: transaction.TotalAmount.Round(0).IntPart(),
 		},
 		Items: &itemDetails,
+		EnabledPayments: []snap.SnapPaymentType{
+			snap.PaymentTypeGopay,
+		},
 	}
 
 	snapResp, err := snapClient.CreateTransaction(snapReq)
@@ -375,13 +380,22 @@ func (s *transactionService) ResumeTransactionByIdempotencyKey(idempotencyKey st
 	}, nil
 }
 
-func (s *transactionService) GetTransactionsByMerchantID(merchantID uuid.UUID) ([]TransactionDTO, error) {
+func (s *transactionService) GetTransactionsByMerchantID(merchantID uuid.UUID, page int, limit int) ([]TransactionDTO, pagination.Pagination, error) {
 
-	transaction, err := s.transactionRepository.GetTransactionByMerchantID(merchantID)
+	transaction, totalItems, err := s.transactionRepository.GetTransactionByMerchantID(merchantID, page, limit)
 
 	if err != nil {
-		return nil, err
+		return nil, pagination.Pagination{}, err
 	}
 
-	return transaction, nil
+	totalPages := int(math.Ceil(float64(totalItems) / float64(limit)))
+
+	pagination := pagination.Pagination{
+		TotalItems: totalItems,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+	}
+
+	return transaction, pagination, nil
 }

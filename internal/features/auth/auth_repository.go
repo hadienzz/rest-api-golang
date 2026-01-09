@@ -29,7 +29,7 @@ func (r *userRepository) RegisterUser(user *User) error {
 func (r *userRepository) FindByEmail(email string) (*User, error) {
 	var user User
 
-	result := r.db.Where("email = ?", email).First(&user)
+	result := r.db.Where("email = ?", email).Take(&user)
 	return &user, result.Error
 }
 

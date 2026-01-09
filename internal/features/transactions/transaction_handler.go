@@ -3,6 +3,7 @@ package transactions
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"go-fiber-api/internal/common/response"
 	"go-fiber-api/internal/util/token"
@@ -125,6 +126,17 @@ func (h *transactionHandler) ResumeTransaction(c *fiber.Ctx) error {
 func (h *transactionHandler) GetTransactionsByMerchantID(c *fiber.Ctx) error {
 	MerchantIDParams := c.Params("merchant_id")
 
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+
+	if page < 1 {
+		page = 1
+	}
+
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+
 	if MerchantIDParams == "" {
 		return response.Fail(c, http.StatusBadRequest, "merchant id cannot be empty!")
 	}
@@ -135,7 +147,7 @@ func (h *transactionHandler) GetTransactionsByMerchantID(c *fiber.Ctx) error {
 		return response.Fail(c, http.StatusBadRequest, "invalid merchant id format")
 	}
 
-	result, err := h.service.GetTransactionsByMerchantID(MerchantID)
+	data, pagination, err := h.service.GetTransactionsByMerchantID(MerchantID, page, limit)
 
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -144,5 +156,8 @@ func (h *transactionHandler) GetTransactionsByMerchantID(c *fiber.Ctx) error {
 		return response.Fail(c, http.StatusBadRequest, err.Error())
 	}
 
-	return response.Success(c, "transaction history", result)
+	return response.Success(c, "transaction history", fiber.Map{
+		"data":       data,
+		"pagination": pagination,
+	})
 }

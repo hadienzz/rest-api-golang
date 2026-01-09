@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"errors"
+	"go-fiber-api/internal/util/pagination"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,7 +15,7 @@ type TransactionRepository interface {
 	UpdateStatusAndPaymentType(orderID string, status TransactionStatus, paymentType string) error
 	GetTransactionsByUserID(userID uuid.UUID) ([]TransactionWithMerchant, error)
 	GetTransactionsDetailByID(orderID string) (*Transaction, error)
-	GetTransactionByMerchantID(MerchantID uuid.UUID) ([]TransactionDTO, error)
+	GetTransactionByMerchantID(MerchantID uuid.UUID, page int, limit int) ([]TransactionDTO, int64, error)
 	WithTx(tx *gorm.DB) *transactionRepository
 }
 
@@ -123,14 +124,26 @@ func (r *transactionRepository) GetTransactionsDetailByID(transactionID string) 
 	return &transaction, nil
 }
 
-func (r *transactionRepository) GetTransactionByMerchantID(MerchantID uuid.UUID) ([]TransactionDTO, error) {
+func (r *transactionRepository) GetTransactionByMerchantID(MerchantID uuid.UUID, page int, limit int) ([]TransactionDTO, int64, error) {
 	var transactions []TransactionDTO
 
-	err := r.db.Table("transactions").Where("merchant_id = ?", MerchantID).Find(&transactions).Error
+	var totalItems int64
+	offset := pagination.GetOffset(page, limit)
 
-	if err != nil {
-		return nil, err
+	if err := r.db.Model(&Transaction{}).Count(&totalItems).Error; err != nil {
+		return nil, 0, err
 	}
 
-	return transactions, nil
+	err := r.db.Table("transactions").
+		Where("merchant_id = ?", MerchantID).
+		Limit(10).
+		Offset(offset).
+		Order("created_at DESC").
+		Find(&transactions).Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return transactions, totalItems, nil
 }
